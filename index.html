@@ -96,30 +96,31 @@
     });
 
     async function registrarPausa(nfcId) {
-        try {
-            await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Evita o bloqueio de segurança CORS no navegador
-                headers: { 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ nfc_id: nfcId })
-            });
+    statusDiv.className = "status aguardando";
+    statusDiv.innerText = `Enviando ID: ${nfcId}...`;
 
+    try {
+        const resposta = await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nfc_id: nfcId })
+        });
+
+        alert("Status da resposta: " + resposta.status);
+
+        if (resposta.ok) {
             statusDiv.className = "status sucesso";
-            statusDiv.innerText = "✅ REGISTRO ENVIADO!\nPode passar o próximo crachá.";
-
-            // Reseta a mensagem na tela após 3 segundos
-            setTimeout(() => {
-                statusDiv.className = "status sucesso";
-                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o crachá da traseira do celular.";
-            }, 3000);
-
-        } catch (err) {
+            statusDiv.innerText = "✅ REGISTRO SALVO NO SHAREPOINT!";
+        } else {
             statusDiv.className = "status erro";
-            statusDiv.innerText = "❌ Erro de conexão com o servidor: " + err;
+            statusDiv.innerText = `❌ Erro HTTP: ${resposta.status}`;
         }
+    } catch (err) {
+        alert("Erro detalhado: " + err.message);
+        statusDiv.className = "status erro";
+        statusDiv.innerText = "❌ Falha no envio: " + err.message;
     }
+}
 </script>
 
 </body>
