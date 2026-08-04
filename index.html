@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Pausa - Vestiário</title>
+    <title>Ponto Vestiário - NFC</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,17 +15,16 @@
             margin: 0;
             background-color: #f4f4f9;
         }
-        .container {
+        .card {
             text-align: center;
-            padding: 40px;
-            border-radius: 15px;
+            padding: 30px;
+            border-radius: 16px;
             background: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             max-width: 90%;
-            width: 400px;
+            width: 350px;
         }
-        h1 { color: #333; margin-bottom: 10px; font-size: 1.8rem; }
-        p { font-size: 1.1rem; color: #666; margin-bottom: 25px; }
+        h2 { color: #333; margin-top: 0; }
         .status {
             margin-top: 20px;
             padding: 15px;
@@ -33,13 +32,14 @@
             font-weight: bold;
             font-size: 1.1rem;
             line-height: 1.4;
+            white-space: pre-line;
         }
         .aguardando { background-color: #e3f2fd; color: #0d47a1; }
         .sucesso { background-color: #e8f5e9; color: #1b5e20; }
         .erro { background-color: #ffebee; color: #b71c1c; }
         button {
-            padding: 18px 30px;
-            font-size: 1.2rem;
+            padding: 16px;
+            font-size: 1.1rem;
             font-weight: bold;
             border: none;
             background-color: #0078d4;
@@ -53,68 +53,71 @@
 </head>
 <body>
 
-<div class="container">
-    <h1>Controle de Pausa</h1>
-    <p>Vestiário Corporativo</p>
+<div class="card">
+    <h2>Registro de Pausa</h2>
+    <p>Vestiário</p>
     
-    <button id="btnIniciar">1. TOQUE AQUI PARA ATIVAR</button>
-    <div id="status" class="status aguardando">Clique no botão acima no início do dia.</div>
+    <button id="btnAtivar">1. ATIVAR LEITOR NFC</button>
+    <div id="status" class="status aguardando">Toque no botão acima para iniciar o leitor.</div>
 </div>
 
 <script>
-    const btnIniciar = document.getElementById('btnIniciar');
+    // ⚠️ SUBSTITUA O TEXTO ABAIXO PELA SUA URL DO POWER AUTOMATE MANTENDO AS ASPAS
+    const WEBHOOK_URL = "SUA_URL_DO_POWER_AUTOMATE_AQUI"; 
+
+    const btnAtivar = document.getElementById('btnAtivar');
     const statusDiv = document.getElementById('status');
 
-    // ⚠️ SUBSTITUA O LINK ABAIXO PELA URL DO SEU FLUXO NO POWER AUTOMATE
-    const WEBHOOK_URL = "https://default651b43ceccb84301b551b04dd872d4.01.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3b3fbd0c98fa4c91b0b07e2f0c08adfe/triggers/manual/paths/invoke?api-version=1"; 
-
-    btnIniciar.addEventListener('click', async () => {
+    btnAtivar.addEventListener('click', async () => {
         if ('NDEFReader' in window) {
             try {
                 const ndef = new NDEFReader();
                 await ndef.scan();
                 
                 statusDiv.className = "status sucesso";
-                statusDiv.innerText = "SISTEMA PRONTO!\n Aproxime o crachá da traseira do celular.";
-                btnIniciar.style.display = "none"; // Esconde o botão após ativar no início do dia
+                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o crachá da traseira do celular.";
+                btnAtivar.style.display = "none";
 
                 ndef.addEventListener("reading", ({ serialNumber }) => {
-                    console.log("Crachá lido:", serialNumber);
-                    
                     statusDiv.className = "status aguardando";
-                    statusDiv.innerText = `Lendo crachá (${serialNumber})...\nRegistrando no SharePoint...`;
+                    statusDiv.innerText = `Lendo crachá (${serialNumber})...\nEnviando dados...`;
 
-                    enviarParaSharePoint(serialNumber);
+                    registrarPausa(serialNumber);
                 });
 
             } catch (error) {
                 statusDiv.className = "status erro";
-                statusDiv.innerText = "Erro ao ativar leitor: " + error;
+                statusDiv.innerText = "Erro ao ativar o leitor: " + error;
             }
         } else {
             statusDiv.className = "status erro";
-            statusDiv.innerText = "Web NFC não suportado. Abra este link usando o Google Chrome no Android!";
+            statusDiv.innerText = "NFC não suportado!\nAbra este link no Google Chrome do Android.";
         }
     });
 
-    async function enviarParaSharePoint(nfcId) {
+    async function registrarPausa(nfcId) {
         try {
-            const response = await fetch(WEBHOOK_URL, {
+            await fetch(WEBHOOK_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors', // Evita o bloqueio de segurança CORS no navegador
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
                 body: JSON.stringify({ nfc_id: nfcId })
             });
 
-            if (response.ok) {
+            statusDiv.className = "status sucesso";
+            statusDiv.innerText = "✅ REGISTRO ENVIADO!\nPode passar o próximo crachá.";
+
+            // Reseta a mensagem na tela após 3 segundos
+            setTimeout(() => {
                 statusDiv.className = "status sucesso";
-                statusDiv.innerText = "✅ PAUSA REGISTRADA!\nPode passar o próximo crachá.";
-            } else {
-                statusDiv.className = "status erro";
-                statusDiv.innerText = "❌ Erro ao salvar no SharePoint. Tente novamente.";
-            }
+                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o crachá da traseira do celular.";
+            }, 3000);
+
         } catch (err) {
             statusDiv.className = "status erro";
-            statusDiv.innerText = "❌ Erro de conexão ao enviar os dados.";
+            statusDiv.innerText = "❌ Erro de conexão com o servidor: " + err;
         }
     }
 </script>
