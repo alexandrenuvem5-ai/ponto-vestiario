@@ -68,8 +68,7 @@
     const btnAtivar = document.getElementById('btnAtivar');
     const statusDiv = document.getElementById('status');
 
-    btnAtivar.addEventListener('click', async () => {
-        registrarPausa("TESTE_123456");
+    registrarPausa("TESTE_123456"); btnAtivar.addEventListener('click', async () => {
         if ('NDEFReader' in window) {
             try {
                 const ndef = new NDEFReader();
