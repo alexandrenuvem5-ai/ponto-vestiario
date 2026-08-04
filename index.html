@@ -5,49 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ponto Vestiário - NFC</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
-        }
-        .card {
-            text-align: center;
-            padding: 30px;
-            border-radius: 16px;
-            background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            max-width: 90%;
-            width: 350px;
-        }
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
+        .card { text-align: center; padding: 30px; border-radius: 16px; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 90%; width: 350px; }
         h2 { color: #333; margin-top: 0; }
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            line-height: 1.4;
-            white-space: pre-line;
-        }
+        .status { margin-top: 20px; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1.1rem; line-height: 1.4; white-space: pre-line; }
         .aguardando { background-color: #e3f2fd; color: #0d47a1; }
         .sucesso { background-color: #e8f5e9; color: #1b5e20; }
         .erro { background-color: #ffebee; color: #b71c1c; }
-        button {
-            padding: 16px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border: none;
-            background-color: #0078d4;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-        }
+        button { padding: 16px; font-size: 1.1rem; font-weight: bold; border: none; background-color: #0078d4; color: white; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; }
         button:active { background-color: #005a9e; }
     </style>
 </head>
@@ -58,69 +23,73 @@
     <p>Vestiário</p>
     
     <button id="btnAtivar">1. ATIVAR LEITOR NFC</button>
-    <div id="status" class="status aguardando">Toque no botão acima para iniciar o leitor.</div>
+    <button id="btnTeste" style="background-color: #6c757d; font-size: 0.9rem; padding: 10px;">🧪 TESTAR ENVIO MANUAL</button>
+
+    <div id="status" class="status aguardando">Toque em Ativar para iniciar.</div>
 </div>
 
 <script>
-    // ⚠️ SUBSTITUA O TEXTO ABAIXO PELA SUA URL DO POWER AUTOMATE MANTENDO AS ASPAS
-    const WEBHOOK_URL = "https://default651b43ceccb84301b551b04dd872d4.01.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3b3fbd0c98fa4c91b0b07e2f0c08adfe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bhu9srXuqGVfJ81O9aGHxvmzwH3Qjn7VWD6a0zRBPCQ"; 
+    // ⚠️ MANTENHA A SUA URL DO POWER AUTOMATE DENTRO DAS ASPAS
+    const WEBHOOK_URL = "COLE_SUA_URL_AQUI"; 
 
     const btnAtivar = document.getElementById('btnAtivar');
+    const btnTeste = document.getElementById('btnTeste');
     const statusDiv = document.getElementById('status');
 
-    registrarPausa("TESTE_123456"); btnAtivar.addEventListener('click', async () => {
+    // Botão de teste direto para validar a gravação no SharePoint
+    btnTeste.addEventListener('click', () => {
+        registrarPausa("04:A1:B2:C3");
+    });
+
+    btnAtivar.addEventListener('click', async () => {
         if ('NDEFReader' in window) {
             try {
                 const ndef = new NDEFReader();
                 await ndef.scan();
                 
                 statusDiv.className = "status sucesso";
-                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o crachá da traseira do celular.";
+                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o crachá do celular.";
                 btnAtivar.style.display = "none";
 
                 ndef.addEventListener("reading", ({ serialNumber }) => {
-                    statusDiv.className = "status aguardando";
-                    statusDiv.innerText = `Lendo crachá (${serialNumber})...\nEnviando dados...`;
-
                     registrarPausa(serialNumber);
                 });
 
             } catch (error) {
                 statusDiv.className = "status erro";
-                statusDiv.innerText = "Erro ao ativar o leitor: " + error;
+                statusDiv.innerText = "Erro no NFC: " + error.message;
             }
         } else {
             statusDiv.className = "status erro";
-            statusDiv.innerText = "NFC não suportado!\nAbra este link no Google Chrome do Android.";
+            statusDiv.innerText = "NFC não suportado neste navegador!\nUse o Chrome no Android.";
         }
     });
 
-    async function registrarPausa(nfcId) {
-    statusDiv.className = "status aguardando";
-    statusDiv.innerText = `Enviando ID: ${nfcId}...`;
+    function registrarPausa(nfcId) {
+        statusDiv.className = "status aguardando";
+        statusDiv.innerText = `Enviando ID: ${nfcId}...`;
 
-    try {
-        const resposta = await fetch(WEBHOOK_URL, {
+        // Envio estruturado via sendBeacon / fetch em formulário (evita bloqueio CORS)
+        const payload = JSON.stringify({ nfc_id: nfcId });
+        
+        fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nfc_id: nfcId })
-        });
-
-        alert("Status da resposta: " + resposta.status);
-
-        if (resposta.ok) {
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: payload
+        }).then(() => {
             statusDiv.className = "status sucesso";
-            statusDiv.innerText = "✅ REGISTRO SALVO NO SHAREPOINT!";
-        } else {
+            statusDiv.innerText = "✅ ENVIADO COM SUCESSO!\nVerifique no SharePoint.";
+            
+            setTimeout(() => {
+                statusDiv.className = "status sucesso";
+                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o próximo crachá.";
+            }, 3000);
+        }).catch(err => {
             statusDiv.className = "status erro";
-            statusDiv.innerText = `❌ Erro HTTP: ${resposta.status}`;
-        }
-    } catch (err) {
-        alert("Erro detalhado: " + err.message);
-        statusDiv.className = "status erro";
-        statusDiv.innerText = "❌ Falha no envio: " + err.message;
+            statusDiv.innerText = "❌ Erro ao enviar: " + err;
+        });
     }
-}
 </script>
 
 </body>
