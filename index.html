@@ -29,8 +29,8 @@
 </div>
 
 <script>
-    // ⚠️ MANTENHA A SUA URL DO POWER AUTOMATE DENTRO DAS ASPAS
-    const WEBHOOK_URL = "COLE_SUA_URL_AQUI"; 
+    // URL do Webhook do Power Automate inserida com sucesso
+    const WEBHOOK_URL = "https://default651b43ceccb84301b551b04dd872d4.01.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/22/workflows/3b3fbd0c98fa4c91b0b07e2f0c08adfe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bhu9srXuqGVfJ81O9aGHxvmzwH3Qjn7VWD6a0zRBPCQ"; 
 
     const btnAtivar = document.getElementById('btnAtivar');
     const btnTeste = document.getElementById('btnTeste');
@@ -66,32 +66,31 @@
     });
 
     function registrarPausa(nfcId) {
-    statusDiv.className = "status aguardando";
-    statusDiv.innerText = `Enviando ID: ${nfcId}...`;
+        statusDiv.className = "status aguardando";
+        statusDiv.innerText = `Enviando ID: ${nfcId}...`;
 
-    // Envio como Form Body (evita bloqueio rígido de CORS e entrega o JSON para o Power Automate)
-    fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'text/plain;charset=UTF-8'
-        },
-        body: JSON.stringify({ "nfc_id": nfcId })
-    })
-    .then(response => {
-        statusDiv.className = "status sucesso";
-        statusDiv.innerText = "✅ REGISTRO SALVO NO SHAREPOINT!";
-        
-        // Volta ao estado de aguardando após 3 segundos
-        setTimeout(() => {
+        fetch(WEBHOOK_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=UTF-8'
+            },
+            body: JSON.stringify({ "nfc_id": nfcId })
+        })
+        .then(() => {
             statusDiv.className = "status sucesso";
-            statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o próximo crachá.";
-        }, 3000);
-    })
-    .catch(err => {
-        statusDiv.className = "status erro";
-        statusDiv.innerText = "❌ Erro ao enviar: " + err;
-    });
-}
+            statusDiv.innerText = "✅ REGISTRO SALVO NO SHAREPOINT!";
+            
+            setTimeout(() => {
+                statusDiv.className = "status sucesso";
+                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o próximo crachá.";
+            }, 3000);
+        })
+        .catch(err => {
+            statusDiv.className = "status erro";
+            statusDiv.innerText = "❌ Erro ao enviar: " + err;
+        });
+    }
 </script>
 
 </body>
