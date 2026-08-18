@@ -66,30 +66,32 @@
     });
 
     function registrarPausa(nfcId) {
-        statusDiv.className = "status aguardando";
-        statusDiv.innerText = `Enviando ID: ${nfcId}...`;
+    statusDiv.className = "status aguardando";
+    statusDiv.innerText = `Enviando ID: ${nfcId}...`;
 
-        // Envio estruturado via sendBeacon / fetch em formulário (evita bloqueio CORS)
-        const payload = JSON.stringify({ nfc_id: nfcId });
+    // Envio como Form Body (evita bloqueio rígido de CORS e entrega o JSON para o Power Automate)
+    fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'text/plain;charset=UTF-8'
+        },
+        body: JSON.stringify({ "nfc_id": nfcId })
+    })
+    .then(response => {
+        statusDiv.className = "status sucesso";
+        statusDiv.innerText = "✅ REGISTRO SALVO NO SHAREPOINT!";
         
-        fetch(WEBHOOK_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: payload
-        }).then(() => {
+        // Volta ao estado de aguardando após 3 segundos
+        setTimeout(() => {
             statusDiv.className = "status sucesso";
-            statusDiv.innerText = "✅ ENVIADO COM SUCESSO!\nVerifique no SharePoint.";
-            
-            setTimeout(() => {
-                statusDiv.className = "status sucesso";
-                statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o próximo crachá.";
-            }, 3000);
-        }).catch(err => {
-            statusDiv.className = "status erro";
-            statusDiv.innerText = "❌ Erro ao enviar: " + err;
-        });
-    }
+            statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o próximo crachá.";
+        }, 3000);
+    })
+    .catch(err => {
+        statusDiv.className = "status erro";
+        statusDiv.innerText = "❌ Erro ao enviar: " + err;
+    });
+}
 </script>
 
 </body>
