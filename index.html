@@ -23,23 +23,15 @@
     <p>Vestiário</p>
     
     <button id="btnAtivar">1. ATIVAR LEITOR NFC</button>
-    <button id="btnTeste" style="background-color: #6c757d; font-size: 0.9rem; padding: 10px;">🧪 TESTAR ENVIO MANUAL</button>
 
     <div id="status" class="status aguardando">Toque em Ativar para iniciar.</div>
 </div>
 
 <script>
-    // URL do Webhook do Power Automate inserida com sucesso
     const WEBHOOK_URL = "https://default651b43ceccb84301b551b04dd872d4.01.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/22/workflows/3b3fbd0c98fa4c91b0b07e2f0c08adfe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bhu9srXuqGVfJ81O9aGHxvmzwH3Qjn7VWD6a0zRBPCQ"; 
 
     const btnAtivar = document.getElementById('btnAtivar');
-    const btnTeste = document.getElementById('btnTeste');
     const statusDiv = document.getElementById('status');
-
-    // Botão de teste direto para validar a gravação no SharePoint
-    btnTeste.addEventListener('click', () => {
-        registrarPausa("04:A1:B2:C3");
-    });
 
     btnAtivar.addEventListener('click', async () => {
         if ('NDEFReader' in window) {
@@ -51,8 +43,25 @@
                 statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o crachá do celular.";
                 btnAtivar.style.display = "none";
 
-                ndef.addEventListener("reading", ({ serialNumber }) => {
-                    registrarPausa(serialNumber);
+                ndef.addEventListener("reading", ({ serialNumber, message }) => {
+                    let idCapturado = serialNumber;
+
+                    if (!idCapturado && message && message.records && message.records.length > 0) {
+                        const decoder = new TextDecoder();
+                        idCapturado = decoder.decode(message.records[0].data);
+                    }
+
+                    if (idCapturado) {
+                        registrarPausa(idCapturado);
+                    } else {
+                        statusDiv.className = "status erro";
+                        statusDiv.innerText = "❌ Crachá lido, mas nenhum ID/Serial foi identificado.";
+                        
+                        setTimeout(() => {
+                            statusDiv.className = "status sucesso";
+                            statusDiv.innerText = "✅ LEITOR ATIVO!\nAproxime o próximo crachá.";
+                        }, 3000);
+                    }
                 });
 
             } catch (error) {
@@ -79,7 +88,7 @@
         })
         .then(() => {
             statusDiv.className = "status sucesso";
-            statusDiv.innerText = "✅ REGISTRO SALVO NO SHAREPOINT!";
+            statusDiv.innerText = `✅ REGISTRO SALVO!\nID: ${nfcId}`;
             
             setTimeout(() => {
                 statusDiv.className = "status sucesso";
